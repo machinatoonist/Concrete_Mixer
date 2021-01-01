@@ -32,6 +32,7 @@ library(recipes)
 library(caret)
 h2o.init()
 
+wd = getwd()
 # Load data
 path_train <- "00_Data/Concrete_Data.xls"
 raw_tbl <- read_excel(path_train, sheet = 1)
@@ -48,38 +49,45 @@ train_data_tbl <- readable_tbl[train_indices,]
 test_data_tbl <- readable_tbl[-train_indices,]
 
 # ML Preprocessing
-skewed_feature_names <- train_data_tbl %>%
-  select_if(is.numeric) %>%
-  map_df(skewness) %>%
-  gather(factor_key = T) %>%
-  arrange(desc(value)) %>%
-  filter(value >= 0.8) %>%
-  # filter(!key %in% c("Age", "Superplasticizer")) %>%
-  pull(key) %>%
-  as.character()
 
+# Commenting out skewed factor references that should not be required for h2o automl
+# skewed_feature_names <- train_data_tbl %>%
+#   select_if(is.numeric) %>%
+#   map_df(skewness) %>%
+#   gather(factor_key = T) %>%
+#   arrange(desc(value)) %>%
+#   filter(value >= 0.8) %>%
+#   # filter(!key %in% c("Age", "Superplasticizer")) %>%
+#   pull(key) %>%
+#   as.character()
+
+# Commenting out the data transformation steps because h2o should take care of these steps for us
 recipe_obj <- recipe(Compressive_Strength_MPa ~ ., data = train_data_tbl) %>%
   step_zv(all_predictors()) %>%
-  step_YeoJohnson(all_of(skewed_feature_names)) %>%
-  # step_mutate_at(factor_names, fn = as.factor)
-  step_center(all_numeric()) %>%
-  step_scale(all_numeric()) %>%
+  # step_YeoJohnson(all_of(skewed_feature_names)) %>%
+  # # step_mutate_at(factor_names, fn = as.factor)
+  # step_center(all_numeric()) %>%
+  # step_scale(all_numeric()) %>%
   prep()
 
   
-train_tbl <- bake(recipe_obj, train_data_tbl)
-test_tbl <- bake(recipe_obj, test_data_tbl)
+train_tbl <- bake(recipe_obj, new_data = train_data_tbl)
+test_tbl <- bake(recipe_obj, new_data = test_data_tbl)
 train_tbl %>% glimpse()
 
 # 2. Modeling ----
 
 h2o.init()
 
-split_h2o <- h2o.splitFrame(as.h2o(train_tbl), ratios = c(0.85), seed = 321)  
+# Not using h2o leaderboard
+# split_h2o <- h2o.splitFrame(as.h2o(train_tbl), ratios = c(0.85), seed = 321)  
 
-train_h2o <- split_h2o[[1]]  
-valid_h2o <- split_h2o[[2]]  
-test_h2o <- as.h2o(test_tbl)
+# train_h2o <- split_h2o[[1]]  
+# valid_h2o <- split_h2o[[2]]  
+# test_h2o <- as.h2o(test_tbl)
+
+train_h2o <- as.h2o(train_tbl)
+valid_h2o <- as.h2o(test_tbl)
 
 y <- "Compressive_Strength_MPa"
 x <- setdiff(names(train_h2o), y) # Get the difference between two arguments
@@ -93,7 +101,6 @@ automl_models_h2o <- h2o.automl(
     y = y,
     training_frame = train_h2o,
     validation_frame = valid_h2o,
-    leaderboard_frame = test_h2o,
     max_runtime_secs = 60,
     nfolds = 5
 )
@@ -133,46 +140,46 @@ extract_model_name_by_position <- function (h2o_leaderboard, n = 1, verbose = TR
 }
 
 automl_models_h2o@leaderboard %>% 
-  extract_model_name_by_position(9) %>%
+  extract_model_name_by_position(1) %>%
   h2o.getModel() %>%
-  h2o.saveModel(path = "04_Modeling/h2o_models/")
+  h2o.saveModel(path = glue("{wd}/04_Modeling/h2o_models/"))
 
 # Save Models
 for(i in 1:6) {
   automl_models_h2o@leaderboard %>% 
     extract_model_name_by_position(i) %>%
     h2o.getModel() %>%
-    h2o.saveModel(path = "04_Modeling/h2o_models/")
+    h2o.saveModel(path = glue("{wd}/04_Modeling/h2o_models/"))
 }
 
 # Load Models
 for(i in 1) {
-  h2o.loadModel(paste0("04_Modeling/h2o_models/",
-                       automl_models_h2o@leaderboard %>% 
-                         extract_model_name_by_position(i)))
+  h2o.loadModel(glue("{wd}/04_Modeling/h2o_models/{
+                      automl_models_h2o@leaderboard %>% 
+                      extract_model_name_by_position(i)
+                      }")
+                )
 }
 
-# Single model
-h2o.loadModel(path = "04_Modeling/h2o_models/XGBoost_grid__1_AutoML_20201214_054322_model_1")
+# This is an alternative approach to loading a single model
+ensemble_model <- h2o.loadModel(path = glue("{wd}/04_Modeling/h2o_models/StackedEnsemble_AllModels_AutoML_20210102_060236"))
 
 
 # Making Predictions
-xgboost_model <- h2o.loadModel(
-  "04_Modeling/h2o_models/XGBoost_grid__1_AutoML_20201214_054322_model_3")
 
-xgboost_model
+ensemble_model
 
-predictions <- h2o.predict(xgboost_model,  newdata = as.h2o(test_tbl))
+predictions <- h2o.predict(ensemble_model,  newdata = as.h2o(test_tbl))
 
 predictions_tbl <- predictions %>% as_tibble()
 
 # Get parameters of model
-xgboost_model@allparameters
-?h2o.xgboost
+ensemble_model@allparameters
 
-h2o.auc(xgboost_model, train = T, valid = T, xval = T)
+# No AUC for regression model
+# h2o.auc(ensemble_model, train = T, valid = T, xval = T)
 
-h2o.mae(xgboost_model, train = T, valid = T, xval = T)
+h2o.mae(ensemble_model, train = T, valid = T, xval = T)
 
 # 3. Visualising the leaderboard ----
 
