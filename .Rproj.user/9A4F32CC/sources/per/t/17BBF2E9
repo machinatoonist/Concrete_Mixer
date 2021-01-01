@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1609485646909.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "372748793",
+    "id" : "17BBF2E9",
+    "lastKnownWriteTime" : 1609485987,
+    "last_content_update" : 1609485987502,
+    "path" : "~/Documents/github/Concrete/00_Scripts/data_processing_pipeline.R",
+    "project_path" : "00_Scripts/data_processing_pipeline.R",
+    "properties" : {
+        "cursorPosition" : "8,16",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

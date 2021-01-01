@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1609485349397.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "202913135",
+    "id" : "CAE09CCA",
+    "lastKnownWriteTime" : 1609484808,
+    "last_content_update" : 1609484808,
+    "path" : "~/Documents/github/Concrete/03_Data_Preparation/concrete_preparation.R",
+    "project_path" : "03_Data_Preparation/concrete_preparation.R",
+    "properties" : {
+        "cursorPosition" : "218,16",
+        "docOutlineVisible" : "1",
+        "scrollLine" : "200"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
