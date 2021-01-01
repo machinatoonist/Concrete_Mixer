@@ -18,6 +18,10 @@ library(stats)
 path_train <- "00_Data/Concrete_Data.xls"
 train_raw_tbl <- read_excel(path_train, sheet = 1)
 
+source("00_Scripts/plot_hist_facet.R")
+source("00_Scripts/plot_cor.R")
+
+
 glimpse(train_raw_tbl)
 
 names(train_raw_tbl) <- c("Cement_kg", 
@@ -224,7 +228,7 @@ train_raw_tbl %>%
 
 recipe_obj <- recipe(Compressive_Strength_MPa ~ ., data = train_raw_tbl) %>%
   step_zv(all_predictors()) %>%
-  step_YeoJohnson(skewed_feature_names) %>%
+  step_YeoJohnson(all_of(skewed_feature_names)) %>%
   # step_mutate_at(factor_names, fn = as.factor)
   step_center(all_numeric()) %>%
   step_scale(all_numeric())
@@ -343,7 +347,7 @@ plot_cor <- function (data,
     geom_point(aes(color = Correlation), size = size) +
     geom_segment(aes(xend = 0, yend = feature, color = Correlation), size = line_size) +
     geom_vline(xintercept = 0, color = palette_light()[[1]], size = vert_size) +
-    expand_limits(x = c(-1, 1)) +
+    expand_limits(x = c(-0.6, 0.6)) +
     theme_tq() + 
     scale_color_manual(values = c(color_neg, color_pos))
   
@@ -353,4 +357,10 @@ plot_cor <- function (data,
 }
 
 train_tbl_bake %>%
-  plot_cor(Compressive_Strength_MPa, fct_reorder = TRUE, fct_rev = FALSE)
+  plot_cor(Compressive_Strength_MPa, fct_reorder = TRUE, fct_rev = FALSE) +
+  labs(
+    title = "Correlation Plot for Concrete Compressive Strength",
+    subtitle = "Data set from UCI Machine Learning Repository",
+    y = "Feature",
+    x = "Compressive Strength MPa"
+  )

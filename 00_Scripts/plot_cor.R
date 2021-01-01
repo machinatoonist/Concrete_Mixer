@@ -17,7 +17,7 @@ get_cor <- function(data, target, use = "pairwise.complete.obs",
         mutate_if(is.character, as.factor) %>%
         mutate_if(is.factor, as.numeric) %>%
         cor(use = use) %>%
-        as.tibble() %>%
+        as_tibble() %>%
         mutate(feature = names(.)) %>%
         select(feature, !! feature_expr) %>%
         filter(!(feature == feature_name)) %>%
