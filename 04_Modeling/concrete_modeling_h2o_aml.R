@@ -186,11 +186,11 @@ h2o.mae(ensemble_model, train = T, valid = T, xval = T)
 data_transformed <- automl_models_h2o@leaderboard %>%
   as_tibble() %>%
   mutate(model_type = str_split(string = model_id, pattern = "_", simplify = T)[,1]) %>%
-  slice(1:10) %>%
+  slice(1:5) %>%
   rownames_to_column() %>%
-  mutate(model_id = as_factor(model_id) %>% reorder(auc),
+  mutate(model_id = as_factor(model_id) %>% reorder(mae),
          model_type = as_factor(model_type)) %>%
-  pivot_longer(cols = c(auc:mse), names_to = "key", values_to = "value") %>%
+  pivot_longer(cols = c(mean_residual_deviance:rmsle), names_to = "key", values_to = "value") %>%
   mutate(key = as_factor(key),
          model_id = paste0(rowname,". ", model_id) %>% as_factor() %>% fct_rev())
 
@@ -202,7 +202,7 @@ data_transformed %>%
   theme_tq() +
   scale_color_tq() + 
   labs(title = "H2O Leaderboard Visualisation",
-      subtitle = "Ordered by: auc",
+      subtitle = "Ordered by: mae",
       y = "Model Position. Model ID",
       x = ""
       )
@@ -210,7 +210,7 @@ data_transformed %>%
 # Create object for stepping through model
 h2o_leaderboard <- automl_models_h2o@leaderboard
 
-plot_h2o_leaderboard <- function(h2o_leaderboard, order_by = c("auc", "logloss"), 
+plot_h2o_leaderboard <- function(h2o_leaderboard, order_by = c("mae", "rmse"), 
                                  n_max = 20, size = 4, include_lbl = TRUE) {
   
   # Setup inputs
@@ -223,25 +223,25 @@ plot_h2o_leaderboard <- function(h2o_leaderboard, order_by = c("auc", "logloss")
     mutate(model_id = paste0(rowname, ". ", as.character(model_id)) %>% as_factor())
   
   # Transformation
-  if (order_by == "auc") {
+  if (order_by == "mae") {
     
     data_transformed_tbl <- leaderboard_tbl %>%
       slice(1:n_max) %>%
       mutate(
-        model_id   = as_factor(model_id) %>% reorder(auc),
+        model_id   = as_factor(model_id) %>% reorder(mae) %>% fct_rev(),
         model_type = as_factor(model_type)
       ) %>%
       # gather(key = key, value = value, 
       #        -c(model_id, model_type, rowname), factor_key = T) 
-    pivot_longer(cols = c(auc:mse), names_to = "key", values_to = "value") %>%
+    pivot_longer(cols = c(mean_residual_deviance:rmsle), names_to = "key", values_to = "value") %>%
       mutate(key = as_factor(key)) %>% arrange(key)
     
-  } else if (order_by == "logloss") {
+  } else if (order_by == "rmse") {
     
     data_transformed_tbl <- leaderboard_tbl %>%
       slice(1:n_max) %>%
       mutate(
-        model_id   = as_factor(model_id) %>% reorder(logloss) %>% fct_rev(),
+        model_id   = as_factor(model_id) %>% reorder(rmse) %>% fct_rev(),
         model_type = as_factor(model_type)
       ) %>%
       # gather(key = key, value = value, 
@@ -260,7 +260,7 @@ plot_h2o_leaderboard <- function(h2o_leaderboard, order_by = c("auc", "logloss")
     facet_wrap(~ key, scales = "free_x") +
     theme_tq() +
     scale_color_tq() +
-    labs(title = "Leaderboard Metrics",
+    labs(title = "Concrete Machine Learning Model Leaderboard Metrics",
          subtitle = paste0("Ordered by: ", toupper(order_by)),
          y = "Model Postion, Model ID", x = "")
   
@@ -270,7 +270,9 @@ plot_h2o_leaderboard <- function(h2o_leaderboard, order_by = c("auc", "logloss")
   
 }
 automl_models_h2o@leaderboard %>% 
-  plot_h2o_leaderboard(order_by = "auc", n_max = 10)
+  plot_h2o_leaderboard(order_by = "mae", n_max = 8)
+
+# CODE BELOW IS NOT APPLICABLE FOR ASSESSING REGRESSION MODEL PERFORMANCE
 
 # 4. Assessing Performance ----
 

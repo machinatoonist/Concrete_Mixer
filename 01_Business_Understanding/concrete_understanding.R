@@ -361,6 +361,6 @@ train_tbl_bake %>%
   labs(
     title = "Correlation Plot for Concrete Compressive Strength",
     subtitle = "Data set from UCI Machine Learning Repository",
-    y = "Feature",
-    x = "Compressive Strength MPa"
+    y = "Concrete Recipe Variable",
+    x = "Correlation with Compressive Strength MPa"
   )
